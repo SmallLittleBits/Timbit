@@ -4,7 +4,7 @@
 #   - add snippet / clipboard ✓
 #   - add snippet / text ✓
 #   - add snippet / file ✓
-#   - add snippet / dir
+#   - add snippet / dir ✓
 #   - duplicate file name exception handling
 #   - add columns / default options and custom
 #   - add custom column
@@ -42,9 +42,10 @@ group.add_argument('-r', '--root', help="Set root directory", metavar='Directory
 group.add_argument('-c', '--clip', help="Add snippet from clipboard", action='store_true')
 group.add_argument('-t', '--text', help="Add snippet from input", action='store_true')
 group.add_argument('-f', '--file', help="Add snippet from path", type=str, metavar='File Path')
+group.add_argument('-d', '--dir', help="Add directory as snippet", type=str, metavar='Dir Path')
 group.add_argument('-s', '--search', help="Search snippets", type=str)
 group.add_argument('-e', '--edit', help="Edit snippet", type=str)
-group.add_argument('-d', '--delete', help="Delete snippet", type=str)
+group.add_argument('-del', '--delete', help="Delete snippet", type=str)
 parser.add_argument('-o', '--options', help="Show setting options", action='store_true')
 parser.add_argument('-v', '--verbose', help="Show more output", type=str, metavar='True/False')
 parser.add_argument('-test', '--testing', help="Show better error information", type=str, metavar='True/False')
@@ -172,13 +173,16 @@ def timbit():
             return
 
 
-        # todo / first version seems to be working
+        # todo / first version seems to be working / fix for abs or not
         if args.file:
             p = args.file
-            path = Path(os.getcwd() + '\\' + p)
-            f = open(path)
-            print(path)
             try:
+                # path = Path(os.getcwd() + '\\' + p)
+                path = os.path.abspath(p)
+                if not os.path.isfile(path):
+                    print(f"{path} is not a file, Please try again")
+                    return
+                f = open(path)
                 if os.path.exists(path):
                     print(f"From File: {path}")
                     print("===============================")
@@ -187,9 +191,15 @@ def timbit():
                 ans = validateForBool(input("Is this what you want to save ? "))
                 # todo: set for columns
                 if ans == 'True':
-                    title = input("What's the snippet name? ")
-                    extension = path.suffix
-                    fileName = title + extension
+                    defName, defSuffix = os.path.splitext(path)
+                    title = input(f"Snippet name [default = {os.path.basename(os.path.normpath(defName))}]: ")
+                    if title is None or title == '':
+                        fileName = os.path.basename(os.path.normpath(path))  # gets only the last path name
+                    else:
+                        extension = input(f"Snippet suffix [default = {defSuffix}]:")
+                        if extension is None or extension == '':
+                            extension = defSuffix
+                        fileName = title + extension
                     fileName = os.path.join(config.get('Paths', 'root_dir'), fileName)
                     shutil.copy(path, fileName)
             except Exception as e:
@@ -220,7 +230,24 @@ def timbit():
             else:
                 print("Please try again")
 
-        
+        if args.dir:
+            p = args.dir
+            try:
+                path = os.path.abspath(p)
+                if not os.path.isdir(p):
+                    print(f"{path} is not a directory, Please try again")
+                    return
+
+                ans = validateForBool(input("Save entire directory recursively ?"))
+                if ans == 'True':
+                    title = input(f"Directory name [default = {path}]: ")
+                    if title is None or title == '':
+                        title = os.path.basename(os.path.normpath(path)) # gets only the last path name
+                    shutil.copytree(path, os.path.join(config.get('Paths', 'root_dir'), title))
+                    print('Done')
+
+            except Exception as e:
+                print(e)
 
         # todo: make actual menu not just print out
         if args.options:
@@ -232,8 +259,8 @@ def timbit():
             return
 
         # No inputs -> print help
-        parser.print_help()
-        print("end: ", args) # for development
+        # parser.print_help()
+        # print("end: ", args) # for development
 
 
     # i don't think this is working but better to have it.
