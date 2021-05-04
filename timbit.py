@@ -1,16 +1,21 @@
 # TODO:
-#   - set root dir for storage
+#   - update root dir ✓
+#   - move existing files when updating root dir ✓
+#   - add snippet / clipboard ✓
 #   - add snippet / text
 #   - add snippet / file
+#   - add snippet / dir
+#   - duplicate file name exception handling
+#   - add columns / default options and custom
+#   - add custom column
 #   - search snippet
 #   - edit snippet
 #   - delete snippet
 #   - write bio/help
-#   - add user object
-#   - add settings
-#   -
-#   -
-#   -
+#   - add settings ✓
+#   - add setting menu
+#   - make start up script to set files and such
+#   - add title & description to files that are saved
 #   - verbose
 #   - set api key
 
@@ -20,7 +25,9 @@ import sys
 import os
 import configparser
 import clipboard
-import pathlib
+import shutil
+from pathlib import Path
+from distutils.dir_util import copy_tree
 
 
 config = configparser.ConfigParser()
@@ -30,15 +37,19 @@ config.BOOLEAN_STATES = {'t': True, 'true': True, 'f': False, 'false': False,}
 
 parser = argparse.ArgumentParser(prog="Timbit", description="Timbit is a snippet tool")
 group = parser.add_mutually_exclusive_group()
-group.add_argument("-r", "--root", help="Set root directory")
-group.add_argument("-c", "--clip", help="Add snippet from clipboard")
-group.add_argument("-f", "--file", help="Add snippet from path")
-group.add_argument("-o", "-options", help="Show setting options", type=int, choices=[0, 1, 2])
-group.add_argument("-v", "--verbose", help="Show more output", type=str)
-group.add_argument("-t", "--testing", help="Show better errors information", type=str)
+group.add_argument('-r', '--root', help="Set root directory", metavar='Directory Path')
+group.add_argument('-c', '--clip', help="Add snippet from clipboard", action='store_true')
+group.add_argument('-t', '--text', help="Add snippet from input", action='store_true')
+group.add_argument('-f', '--file', help="Add snippet from path", nargs='?', default='.', metavar='Optional Path')
+# group.add_argument('-f', '--file', help="Add snippet from path", nargs='?', default='.', metavar='Optional Path', type= lambda x: isValidFile(x))
+parser.add_argument('-o', '--options', help="Show setting options", action='store_true')
+parser.add_argument('-v', '--verbose', help="Show more output", type=str, metavar='True/False')
+parser.add_argument('-test', '--testing', help="Show better errors information", type=str, metavar='True/False')
 
-
-def pathIsValid(pathname: str) -> bool:
+def pathIsValidRoot(pathname: str) -> bool:
+    # file name cleaning
+    pathname = pathname.replace('"', '')
+    pathname = pathname.replace("'", "")
     try:
         # is valid str
         if not isinstance(pathname, str) or not pathname:
@@ -46,9 +57,15 @@ def pathIsValid(pathname: str) -> bool:
         try:
             boo = os.path.exists(pathname)
             if boo:
-
                 if os.path.isdir(pathname):
                     if os.access(pathname, os.W_OK):
+                        old = config.get('Paths', 'root_dir')
+                        if os.path.isdir(old):
+                            copy_tree(old, pathname)
+                            # probably should happen default set not to in settings
+                            ans = validateForBool(input("Delete old directory? "))
+                            if ans == 'True':
+                                shutil.rmtree(old)
                         return True
                     else: return False
                 else: return False
@@ -56,7 +73,14 @@ def pathIsValid(pathname: str) -> bool:
                 os.access(pathname, os.W_OK)
                 ans = validateForBool(input("This directory doesn't exist. \nCreate new directory? "))
                 if ans == 'True':
-                    os.mkdir(pathname)
+                    # if existing files, move now
+                    old = config.get('Paths', 'root_dir')
+                    print('here')
+                    if os.path.exists(old):
+                        shutil.move(old, pathname)
+                    # else make new (shouldn't happen unless user deletes directory manually
+                    else:
+                        os.mkdir(pathname)
                     return True
                 else:
                     print("Directory not made, Root directory not set.")
@@ -110,24 +134,20 @@ def timbit():
             writeToConfig()
             print(f"verbosity turned {config.get('Settings', 'verbose')}")
 
-
         # set root path
-        # todo: when dir not empty copy to new dir
         if args.root:
             path = args.root
-
             if path == config.get('Paths', 'root_dir'):
                 print('This is already the root directory')
                 return
 
-            if pathIsValid(pathname=path):
+            if pathIsValidRoot(pathname=path):
                 config.set('Paths', 'root_dir', value=args.root)
                 writeToConfig()
                 return
             else:
                 print("Error: Path is not valid for root directory")
                 sys.exit()
-
 
         if args.clip:
             print("===============================")
@@ -141,18 +161,37 @@ def timbit():
                 # i made some dumb mistakes so this is kinda spread apart and gross
                 fileName = title + '.' + extension
                 fileName = os.path.join(config.get('Paths', 'root_dir'), fileName)
-                print(fileName)
                 file = open(fileName, 'x')
                 file.write(getFromClipBoard())
                 file.close()
             else:
-                print('Please retry copying your entry')
+                print('Please retry copying your entry, the last copied item will be saved')
             return
 
 
-        # todo
+        # todo / first version seems to be working
         if args.file:
-            print(f"file = {args.file}")
+            p = args.file
+            path = Path(os.getcwd() + '\\' + p)
+            f = open(path)
+            print(path)
+            try:
+                if os.path.exists(path):
+                    print(f"From File: {path}")
+                    print("===============================")
+                    print(f"{f.read()}")
+                    print("===============================")
+                ans = validateForBool(input("Is this what you want to save ? "))
+                # todo: set for columns
+                if ans == 'True':
+                    title = input("What's the snippet name? ")
+                    extension = path.suffix
+                    fileName = title + extension
+                    fileName = os.path.join(config.get('Paths', 'root_dir'), fileName)
+                    shutil.copy(path, fileName)
+            except Exception as e:
+                # todo: improve later
+                print(e)
             return
 
         # todo
