@@ -3,12 +3,12 @@
 #   - move existing files when updating root dir ✓
 #   - add snippet / clipboard ✓
 #   - add snippet / text
-#   - add snippet / file
+#   - add snippet / file ✓
 #   - add snippet / dir
 #   - duplicate file name exception handling
 #   - add columns / default options and custom
 #   - add custom column
-#   - search snippet
+#   - search snippet / search will be very important later on / apparently this is the best and baddest in the game / https://www.elastic.co/
 #   - edit snippet
 #   - delete snippet
 #   - write bio/help
@@ -18,6 +18,7 @@
 #   - add title & description to files that are saved
 #   - verbose
 #   - set api key
+#   - Should look at adding terminal menu / 2 quick options / https://github.com/IngoMeyer441/simple-term-menu / https://github.com/aegirhall/console-menu
 
 
 import argparse
@@ -40,11 +41,13 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-r', '--root', help="Set root directory", metavar='Directory Path')
 group.add_argument('-c', '--clip', help="Add snippet from clipboard", action='store_true')
 group.add_argument('-t', '--text', help="Add snippet from input", action='store_true')
-group.add_argument('-f', '--file', help="Add snippet from path", nargs='?', default='.', metavar='Optional Path')
-# group.add_argument('-f', '--file', help="Add snippet from path", nargs='?', default='.', metavar='Optional Path', type= lambda x: isValidFile(x))
+group.add_argument('-f', '--file', help="Add snippet from path", type=str, metavar='File Path')
+group.add_argument('-s', '--search', help="Search snippets", type=str)
+group.add_argument('-e', '--edit', help="Edit snippet", type=str)
+group.add_argument('-d', '--delete', help="Delete snippet", type=str)
 parser.add_argument('-o', '--options', help="Show setting options", action='store_true')
 parser.add_argument('-v', '--verbose', help="Show more output", type=str, metavar='True/False')
-parser.add_argument('-test', '--testing', help="Show better errors information", type=str, metavar='True/False')
+parser.add_argument('-test', '--testing', help="Show better error information", type=str, metavar='True/False')
 
 def pathIsValidRoot(pathname: str) -> bool:
     # file name cleaning
@@ -196,7 +199,11 @@ def timbit():
 
         # todo
         if args.options:
-            print(f"options = {args.options}")
+            # primitive but works for now
+            print(f"Version: {config.get('Timbit', 'version')}")
+            print(f"Testing: {config.get('Settings', 'testing')}")
+            print(f"Verbose: {config.get('Settings', 'verbose')}")
+            print(f"Root Dir: {config.get('Paths', 'root_dir')}")
             return
 
         # No inputs -> print help
