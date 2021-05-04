@@ -2,7 +2,7 @@
 #   - update root dir ✓
 #   - move existing files when updating root dir ✓
 #   - add snippet / clipboard ✓
-#   - add snippet / text
+#   - add snippet / text ✓
 #   - add snippet / file ✓
 #   - add snippet / dir
 #   - duplicate file name exception handling
@@ -197,7 +197,32 @@ def timbit():
                 print(e)
             return
 
-        # todo
+        if args.text:
+            print("Please enter the text you'd like to save, Press Ctrl + Z to end: ")
+            content = []
+            # multiline adding
+            while True:
+                try:
+                    line = input()
+                except EOFError:
+                    break
+                content.append(line)
+            fullText = ' '.join([str(elem + '\n') for elem in content]).replace('\n ', '\n') # replace a bit of a hack rn
+            ans = validateForBool(input(f"\n===============================\n{fullText}\n===============================\nIs this correct ? "))
+            if ans == 'True':
+                title = input("What's the snippet name? ")
+                extension = input("File extension? .")
+                fileName = title + '.' + extension
+                fileName = os.path.join(config.get('Paths', 'root_dir'), fileName)
+                file = open(fileName, 'x')
+                file.write(fullText)
+                file.close()
+            else:
+                print("Please try again")
+
+        
+
+        # todo: make actual menu not just print out
         if args.options:
             # primitive but works for now
             print(f"Version: {config.get('Timbit', 'version')}")
